@@ -1,0 +1,16 @@
+{
+  "name": "jellywave/magento2-module-update-order-email",
+  "description": "",
+  "type": "magento2-module",
+  "license": "proprietary",
+  "minimum-stability": "dev",
+  "autoload": {
+    "files": [
+      "registration.php"
+    ],
+    "psr-4": {
+      "Jellywave\\UpdateOrderEmail\\": ""
+    }
+  },
+  "version": "100.0.0"
+}

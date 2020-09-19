@@ -11,11 +11,13 @@
  * https://devdocs.magento.com/guides/v2.4/extension-dev-guide/cli-cmds/cli-howto.html
  * https://symfony.com/doc/current/console/coloring.html
  * https://symfony.com/doc/current/components/console/helpers/questionhelper.html
+ * Magento_Customer/Model/CustomerRegistry.php
  */
 declare(strict_types=1);
 
 namespace Jellywave\UpdateOrderEmail\Console\Command;
 
+use Magento\Customer\Model\Customer;
 use Magento\Framework\Api\{
     SearchCriteriaBuilder,
     FilterBuilder
@@ -25,6 +27,8 @@ use Magento\Sales\Api\{
     Data\OrderInterface,
     OrderRepositoryInterface
 };
+
+use Magento\Customer\Model\CustomerFactory;
 
 use Symfony\Component\Console\{
     Command\Command,
@@ -66,22 +70,30 @@ class UpdateOrderEmail extends Command
     private $filterBuilder;
 
     /**
+     * @var CustomerFactory
+     */
+    private $customerFactory;
+
+    /**
      * RetailSystemSync constructor.
      *
      * @param \Magento\Sales\Api\OrderRepositoryInterface $salesOrderRepository
      * @param \Magento\Framework\Api\SearchCriteriaBuilder $searchCriteriaBuilder
      * @param \Magento\Framework\Api\FilterBuilder $filterBuilder
+     * @param CustomerFactory $customerFactory
      * @param string|null $name
      */
     public function __construct(
         OrderRepositoryInterface $salesOrderRepository,
         SearchCriteriaBuilder $searchCriteriaBuilder,
         FilterBuilder $filterBuilder,
+        CustomerFactory $customerFactory,
         string $name = null
     ) {
         $this->salesOrderRepository = $salesOrderRepository;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
         $this->filterBuilder = $filterBuilder;
+        $this->customerFactory = $customerFactory;
         parent::__construct($name);
     }
 
@@ -117,6 +129,7 @@ class UpdateOrderEmail extends Command
     ) {
         $incrementId = $input->getOption(self::INCREMENT_ID_ARGUMENT);
         $email = $input->getOption(self::EMAIL_ARGUMENT);
+        $customerUpdate = false;
         $orders = [];
         if($incrementId) {
             /** @var \Magento\Sales\Api\Data\OrderInterface $order */
@@ -151,8 +164,19 @@ class UpdateOrderEmail extends Command
             throw new \Exception("Invalid email format");
         }
 
+        $customerId = $this->validateCustomer($newemail, 1);
+        if($customerId) {
+
+            /** @var \Symfony\Component\Console\Question\Question $question */
+            $question = new ConfirmationQuestion('Change customer association? [y|n] : ', false);
+
+            if ($helper->ask($input, $output, $question)) {
+                $customerUpdate = true;
+            }
+        }
+
         $output->writeln("<comment>Set orders to email {$newemail}</comment>\n");
-        /* COnfirm action */
+        /* Confirm action */
         /** @var \Symfony\Component\Console\Question\Question $question */
         $question = new ConfirmationQuestion('Continue with update? [y|n] : ', false);
 
@@ -163,6 +187,10 @@ class UpdateOrderEmail extends Command
                 foreach($orders as $order) {
 
                     $order->setCustomerEmail($newemail);
+                    if($customerUpdate){
+                        $order->setCustomerId($customerId);
+                        $order->setCustomerIsGuest(0);
+                    }
                     $this->salesOrderRepository->save($order);
 
                     $output->writeln("<info>Updated #{$order->getIncrementId()}</info>");
@@ -178,6 +206,24 @@ class UpdateOrderEmail extends Command
 
     }
 
+    /**
+     * Resolve users email to a customer ID
+     *
+     * @param string $customerEmail Customers email address
+     * @param string|null $websiteId Optional website ID, if not set, will use the current websiteId
+     * @return int
+     */
+    private function validateCustomer(string $customerEmail, $websiteId = null): int
+    {
+        /** @var Customer $customer */
+        $customer = $this->customerFactory->create();
+
+        if (isset($websiteId)) {
+            $customer->setWebsiteId($websiteId);
+        }
+        $customer->loadByEmail($customerEmail);
+        return (int)$customer->getId();
+    }
 
     /**
      * Retrieves sales order by increment ID

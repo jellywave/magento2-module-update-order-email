@@ -1,0 +1,12 @@
+<!--
+https://devdocs.magento.com/guides/v2.4/extension-dev-guide/cli-cmds/cli-howto.html
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Magento\Framework\Console\CommandListInterface">
+        <arguments>
+            <argument name="commands" xsi:type="array">
+                <item name="update-order-email" xsi:type="object">Jellywave\UpdateOrderEmail\Console\Command\UpdateOrderEmail</item>
+            </argument>
+        </arguments>
+    </type>
+</config>

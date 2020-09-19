@@ -17,18 +17,21 @@ declare(strict_types=1);
 
 namespace Jellywave\UpdateOrderEmail\Console\Command;
 
-use Magento\Customer\Model\Customer;
+use Magento\Store\Model\StoreManagerInterface;
+
 use Magento\Framework\Api\{
     SearchCriteriaBuilder,
     FilterBuilder
 };
-
 use Magento\Sales\Api\{
     Data\OrderInterface,
     OrderRepositoryInterface
 };
 
-use Magento\Customer\Model\CustomerFactory;
+use Magento\Customer\Model\{
+    Customer,
+    CustomerFactory
+};
 
 use Symfony\Component\Console\{
     Command\Command,
@@ -74,6 +77,14 @@ class UpdateOrderEmail extends Command
      */
     private $customerFactory;
 
+
+    /**
+     * @var \Magento\Store\Model\StoreManagerInterface
+     */
+    private $storeManager;
+
+    private $websiteId = 1;
+
     /**
      * RetailSystemSync constructor.
      *
@@ -81,6 +92,7 @@ class UpdateOrderEmail extends Command
      * @param \Magento\Framework\Api\SearchCriteriaBuilder $searchCriteriaBuilder
      * @param \Magento\Framework\Api\FilterBuilder $filterBuilder
      * @param CustomerFactory $customerFactory
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      * @param string|null $name
      */
     public function __construct(
@@ -88,12 +100,14 @@ class UpdateOrderEmail extends Command
         SearchCriteriaBuilder $searchCriteriaBuilder,
         FilterBuilder $filterBuilder,
         CustomerFactory $customerFactory,
+        StoreManagerInterface $storeManager,
         string $name = null
     ) {
         $this->salesOrderRepository = $salesOrderRepository;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
         $this->filterBuilder = $filterBuilder;
         $this->customerFactory = $customerFactory;
+        $this->storeManager = $storeManager;
         parent::__construct($name);
     }
 
@@ -131,6 +145,29 @@ class UpdateOrderEmail extends Command
         $email = $input->getOption(self::EMAIL_ARGUMENT);
         $customerUpdate = false;
         $orders = [];
+
+        if($this->storeManager->isSingleStoreMode() || $this->storeManager->hasSingleStore()){
+            $this->websiteId = (int)$this->storeManager->getDefaultStoreView()->getWebsiteId();
+        } else {
+            $websites = $this->storeManager->getWebsites();
+            $websitesIds = [];
+            $output->writeln("<info>Please select a Website scope : </info>");
+            /** @var \Magento\Store\Api\Data\WebsiteInterface $website */
+            foreach($websites as $website) {
+                $websitesIds[] = $website->getId();
+                $output->writeln("<info>{$website->getId()} : {$website->getName()}</info>");
+            }
+
+            /** @var \Symfony\Component\Console\Question\Question $question */
+            $question = new Question('Please enter website ID : ');
+
+            $helper = $this->getHelper('question');
+            $this->websiteId = $helper->ask($input, $output, $question);
+            if(!in_array($this->websiteId, $websitesIds)){
+                throw new \Exception("Invalid Website ID");
+            }
+        }
+
         if($incrementId) {
             /** @var \Magento\Sales\Api\Data\OrderInterface $order */
             $order = $this->getSalesOrderByIncrementId((int) $incrementId);
@@ -164,7 +201,7 @@ class UpdateOrderEmail extends Command
             throw new \Exception("Invalid email format");
         }
 
-        $customerId = $this->validateCustomer($newemail, 1);
+        $customerId = $this->validateCustomer($newemail, $this->storeId);
         if($customerId) {
 
             /** @var \Symfony\Component\Console\Question\Question $question */

@@ -199,7 +199,6 @@ class UpdateOrderEmail extends Command
             } catch (Exception $e) {
                 throw new \Exception($e->getMessage());
             }
-            $output->writeln("\nFinish\n");
         } else {
             $output->writeln("\nCancelled\n");
         }

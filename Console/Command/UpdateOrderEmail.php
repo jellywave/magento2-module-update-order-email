@@ -146,6 +146,9 @@ class UpdateOrderEmail extends Command
         $customerUpdate = false;
         $orders = [];
 
+        /**
+         * Specify Website Scope
+         */
         if($this->storeManager->isSingleStoreMode() || $this->storeManager->hasSingleStore()){
             $this->websiteId = (int)$this->storeManager->getDefaultStoreView()->getWebsiteId();
         } else {
@@ -168,6 +171,9 @@ class UpdateOrderEmail extends Command
             }
         }
 
+        /**
+         * Load Orders by either incrementId or Email
+         */
         if($incrementId) {
             /** @var \Magento\Sales\Api\Data\OrderInterface $order */
             $order = $this->getSalesOrderByIncrementId((int) $incrementId);
@@ -190,6 +196,9 @@ class UpdateOrderEmail extends Command
 
         $output->writeln("");
 
+        /**
+         * Fetch New Email
+         */
         /** @var \Symfony\Component\Console\Question\Question $question */
         $question = new Question('Please enter the new email address : ');
 
@@ -197,13 +206,16 @@ class UpdateOrderEmail extends Command
         $newemail = $helper->ask($input, $output, $question);
 
         /* ToDo Replace with Magento validator */
+        
         if (!filter_var($newemail, FILTER_VALIDATE_EMAIL)) {
             throw new \Exception("Invalid email format");
         }
 
-        $customerId = $this->validateCustomer($newemail, $this->storeId);
+        /**
+         * Check if customer existing within website scope
+         */
+        $customerId = $this->validateCustomer($newemail, $this->websiteId);
         if($customerId) {
-
             /** @var \Symfony\Component\Console\Question\Question $question */
             $question = new ConfirmationQuestion('Change customer association? [y|n] : ', false);
 
@@ -217,14 +229,22 @@ class UpdateOrderEmail extends Command
         /** @var \Symfony\Component\Console\Question\Question $question */
         $question = new ConfirmationQuestion('Continue with update? [y|n] : ', false);
 
+        /**
+         * Performed the order update
+         */
         if ($helper->ask($input, $output, $question)) {
 
             try {
                 /** @var \Magento\Sales\Api\Data\OrderInterface $order */
                 foreach($orders as $order) {
 
+                    /* ToDo Add validation on moving orders between websites */
+
                     $order->setCustomerEmail($newemail);
                     if($customerUpdate){
+
+                        /* ToDo Update customer name within order? */
+
                         $order->setCustomerId($customerId);
                         $order->setCustomerIsGuest(0);
                     }

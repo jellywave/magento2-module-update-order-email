@@ -261,7 +261,9 @@ class UpdateOrderEmail extends Command
         }
 
     }
-
+    /*
+     * Sourced from Magento_Customer/Model/CustomerRegistry.php To make sure Website was considered.
+     */
     /**
      * Resolve users email to a customer ID
      *
@@ -281,6 +283,11 @@ class UpdateOrderEmail extends Command
         return (int)$customer->getId();
     }
 
+    /*
+     *  This method was derived from previously work on code, related to fetching Orders by various filters,
+     *  not build from scratch, Possibly over engineered for fetching by incrementId, as this can be done via
+     *  Magento\Sales\Model\Order. But loading data from a repository should be a preferred method aka email, storeview .
+     */
     /**
      * Retrieves sales order by increment ID
      *
@@ -290,6 +297,8 @@ class UpdateOrderEmail extends Command
      */
     private function getSalesOrderByIncrementId(int $incrementId): OrderInterface
     {
+        /* ToDo allow for webiste filtersing */
+
         /** @var \Magento\Framework\Api\Filter $filter */
         $filter = $this->filterBuilder->setField(OrderInterface::INCREMENT_ID)
             ->setConditionType('eq')
@@ -319,6 +328,8 @@ class UpdateOrderEmail extends Command
      */
     private function getSalesOrderByEmail(string $email): array
     {
+        /* ToDo allow for webiste filtersing */
+
         /** @var \Magento\Framework\Api\Filter $filter */
         $filter = $this->filterBuilder->setField(OrderInterface::CUSTOMER_EMAIL)
             ->setConditionType('eq')

@@ -7,7 +7,36 @@ A simple command line tool that allows for updating order email addresses.
 ##Install
 ### Installation Using Composer (recommended)
 
+Add to compose.json
+
+```           
+    "require": {
+      ...
+      "jellywave/magento2-module-update-order-email":"1.0.0"
+    },            
+```
+
+```
+    "repositories": [
+      ...
+      {
+        "type": "package",
+        "package": {
+          "name": "jellywave/magento2-module-update-order-email",
+          "version": "1.0.0",
+          "source": {
+            "url": "https://github.com/jellywave/magento2-module-update-order-email",
+            "type": "git",
+            "reference": "master"
+          }
+        }
+      }
+      ...
+    ]
+```
+
 `composer require jellywave/magento2-module-update-order-email`
+This method will not work unless the repository have been set
 
 `bin/magento setup:upgrade`
 
